@@ -1,19 +1,14 @@
 package ru.dudar.criminalintent.data
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import java.text.SimpleDateFormat
 import java.util.*
 
+@Entity
 data class Crime(
-    val id: UUID = UUID.randomUUID(),
+    @PrimaryKey
+    var id: UUID = UUID.randomUUID(),
     var title: String = "",
-    var date: String = "Дата: "+ dat.getCurrentTime(),
-    var isSolved: Boolean = false ) {
-
-    object dat {
-        fun getCurrentTime(): String {
-            val date = Date()
-            val formatter = SimpleDateFormat("dd-MM-yy kk:mm", Locale.getDefault())
-            return formatter.format(date)
-        }
-    }
-}
+    var date: Date = Date(),
+    var isSolved: Boolean = false )

@@ -1,7 +1,6 @@
 package ru.dudar.criminalintent.UI
 
 import android.os.Bundle
-import android.provider.ContactsContract
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -16,12 +15,14 @@ import androidx.recyclerview.widget.RecyclerView
 import ru.dudar.criminalintent.R
 import ru.dudar.criminalintent.data.Crime
 import ru.dudar.criminalintent.data.CrimeListViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
 private const val TAG = "CrimeListFragment"
 
 class CrimeListFragment : Fragment() {
 
-    private var adapter : CrimeAdapter? = null
+    private var adapter : CrimeAdapter? = CrimeAdapter(emptyList())
 
     private lateinit var crimeRecyclerView: RecyclerView
 
@@ -29,16 +30,17 @@ class CrimeListFragment : Fragment() {
         ViewModelProviders.of(this).get(CrimeListViewModel::class.java)
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        Log.d(TAG, "Всего сообщений: ${crimeListViewModel.crimes.size}")
-    }
+//    override fun onCreate(savedInstanceState: Bundle?) {
+//        super.onCreate(savedInstanceState)
+//        Log.d(TAG, "Всего сообщений: ${crimeListViewModel.crimes.size}")
+//    }
 
     override fun onCreateView(inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_crime_list, container, false)
+
         return view
     }
 
@@ -46,37 +48,42 @@ class CrimeListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         crimeRecyclerView = view.findViewById(R.id.crime_recycler_view)
         crimeRecyclerView.layoutManager = LinearLayoutManager(context)
-        updateUI()
+        crimeRecyclerView.adapter = adapter
+
+        crimeListViewModel.crimeListLiveData.observe(
+            viewLifecycleOwner,
+            androidx.lifecycle.Observer { crimes ->
+                crimes?.let {
+                    updateUI(crimes)
+                }
+            }
+        )
+
 
     }
 
-    private fun updateUI() {
-        val crimes = crimeListViewModel.crimes
+    private fun updateUI(crimes: List<Crime>) {
+       // val crimes = crimeListViewModel.crimes
         adapter = CrimeAdapter(crimes)
         crimeRecyclerView.adapter = adapter
     }
-
 
     companion object {
         fun newInstanse(): CrimeListFragment {
             return CrimeListFragment()
         }
     }
+
  //    HOLDER и ADAPTER
     private inner class CrimeHolder(itemView: View): RecyclerView.ViewHolder(itemView) {
-
-        private lateinit var crime : Crime
 
         val titleTextView: TextView = itemView.findViewById(R.id.crime_title)
         val dateTextView: TextView = itemView.findViewById(R.id.crime_date)
         val solvedImageView : ImageView = itemView.findViewById(R.id.crime_solved)
 
-
-
         fun setData(crime: Crime) {
-             this.crime = crime
-             titleTextView.text = this.crime.title
-             dateTextView.text = this.crime.date
+             titleTextView.text = crime.title
+             dateTextView.text = "Дата: ${getDateToStr(crime.date)}"
              solvedImageView.visibility = if(crime.isSolved) {
                  View.VISIBLE
              } else {
@@ -86,8 +93,8 @@ class CrimeListFragment : Fragment() {
                 Toast.makeText(context, "${crime.title}", Toast.LENGTH_SHORT).show()
              }
         }
-
     }
+
     private inner class CrimeAdapter(var crimes: List<Crime>):RecyclerView.Adapter<CrimeHolder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CrimeHolder {
@@ -100,6 +107,11 @@ class CrimeListFragment : Fragment() {
             holder.setData(crime)
         }
         override fun getItemCount() = crimes.size
+    }
+
+    fun getDateToStr(date : Date): String {
+        val formatter = SimpleDateFormat("dd-MM-yy kk:mm", Locale.getDefault())
+        return formatter.format(date)
     }
 
 }
