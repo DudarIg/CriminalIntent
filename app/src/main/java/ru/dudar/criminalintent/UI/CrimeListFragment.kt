@@ -1,13 +1,14 @@
 package ru.dudar.criminalintent.UI
 
+import android.content.Context
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -22,6 +23,12 @@ private const val TAG = "CrimeListFragment"
 
 class CrimeListFragment : Fragment() {
 
+    interface Callbacks {
+        fun onCrimeSelected(crimeId: UUID)
+    }
+
+    private var callbacks: Callbacks? = null
+
     private var adapter : CrimeAdapter? = CrimeAdapter(emptyList())
 
     private lateinit var crimeRecyclerView: RecyclerView
@@ -30,10 +37,15 @@ class CrimeListFragment : Fragment() {
         ViewModelProviders.of(this).get(CrimeListViewModel::class.java)
     }
 
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        Log.d(TAG, "Всего сообщений: ${crimeListViewModel.crimes.size}")
-//    }
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        callbacks = context as Callbacks?
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        callbacks = null
+    }
 
     override fun onCreateView(inflater: LayoutInflater,
         container: ViewGroup?,
@@ -48,25 +60,21 @@ class CrimeListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         crimeRecyclerView = view.findViewById(R.id.crime_recycler_view)
         crimeRecyclerView.layoutManager = LinearLayoutManager(context)
-        crimeRecyclerView.adapter = adapter
 
-        crimeListViewModel.crimeListLiveData.observe(
-            viewLifecycleOwner,
-            androidx.lifecycle.Observer { crimes ->
+        // слушатель с использованием  LiveData - обновление данных из crimeListViewModel
+        crimeListViewModel.crimesLiveData.observe(
+            viewLifecycleOwner, { crimes ->
                 crimes?.let {
-                    updateUI(crimes)
+                    crimeRecyclerView.adapter = CrimeAdapter(crimes)
                 }
             }
         )
-
-
     }
 
-    private fun updateUI(crimes: List<Crime>) {
-       // val crimes = crimeListViewModel.crimes
-        adapter = CrimeAdapter(crimes)
-        crimeRecyclerView.adapter = adapter
-    }
+//    private fun updateUI(crimes: List<Crime>) {
+//        adapter = CrimeAdapter(crimes)
+//        crimeRecyclerView.adapter = adapter
+//    }
 
     companion object {
         fun newInstanse(): CrimeListFragment {
@@ -90,7 +98,8 @@ class CrimeListFragment : Fragment() {
                  View.GONE
              }
             itemView.setOnClickListener{
-                Toast.makeText(context, "${crime.title}", Toast.LENGTH_SHORT).show()
+                //Toast.makeText(context, "${crime.title}", Toast.LENGTH_SHORT).show()
+                callbacks?.onCrimeSelected((crime.id))
              }
         }
     }
