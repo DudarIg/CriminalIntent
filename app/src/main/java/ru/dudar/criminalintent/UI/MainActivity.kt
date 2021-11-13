@@ -3,6 +3,8 @@ package ru.dudar.criminalintent.UI
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.Menu
+import android.view.MenuInflater
 import ru.dudar.criminalintent.UI.CrimeListFragment
 import ru.dudar.criminalintent.R
 import java.util.*
@@ -33,6 +35,13 @@ class MainActivity : AppCompatActivity(), CrimeListFragment.Callbacks {
             .replace(R.id.fragment_container, fragment)
             .addToBackStack(null)
             .commit()
-
     }
+
+//    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+//        menuInflater.inflate(R.menu.menu_top, menu)
+//        return true
+//    }
+
+
+
 }

@@ -1,16 +1,17 @@
 package ru.dudar.criminalintent.UI
 
+import android.content.ClipData
 import android.content.Context
+import android.content.DialogInterface
 import android.os.Bundle
-import android.os.Handler
-import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.ViewModelProviders
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import ru.dudar.criminalintent.R
@@ -22,6 +23,8 @@ import java.util.*
 private const val TAG = "CrimeListFragment"
 
 class CrimeListFragment : Fragment() {
+
+    private lateinit var zeroTV: TextView
 
     interface Callbacks {
         fun onCrimeSelected(crimeId: UUID)
@@ -37,19 +40,24 @@ class CrimeListFragment : Fragment() {
         ViewModelProviders.of(this).get(CrimeListViewModel::class.java)
     }
 
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        callbacks = context as Callbacks?
-    }
+//    override fun onAttach(context: Context) {
+//        super.onAttach(context)
+//        callbacks = context as Callbacks?
+//    }
 
-    override fun onDetach() {
-        super.onDetach()
-        callbacks = null
-    }
+//    override fun onDetach() {
+//        super.onDetach()
+//        callbacks = null
+//    }
 
-    override fun onCreateView(inflater: LayoutInflater,
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setHasOptionsMenu(true)
+    }
+    override fun onCreateView(
+        inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View? {
         val view = inflater.inflate(R.layout.fragment_crime_list, container, false)
 
@@ -59,22 +67,61 @@ class CrimeListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         crimeRecyclerView = view.findViewById(R.id.crime_recycler_view)
+        zeroTV = view.findViewById(R.id.zeto_TV)
         crimeRecyclerView.layoutManager = LinearLayoutManager(context)
 
-        // слушатель с использованием  LiveData - обновление данных из crimeListViewModel
+
+        // слушатель (выполняемый код)  с использованием  LiveData - обновление данных
+        // в crimeRecyclerView из crimeListViewModel
         crimeListViewModel.crimesLiveData.observe(
             viewLifecycleOwner, { crimes ->
                 crimes?.let {
-                    crimeRecyclerView.adapter = CrimeAdapter(crimes)
+                    adapter = CrimeAdapter(crimes)
+                    crimeRecyclerView.adapter = adapter
+
+                    if (crimes.size > 0) {
+                        zeroTV.visibility = View.GONE
+                    } else {
+                        zeroTV.visibility = View.VISIBLE
+                    }
+
                 }
             }
         )
     }
 
-//    private fun updateUI(crimes: List<Crime>) {
-//        adapter = CrimeAdapter(crimes)
-//        crimeRecyclerView.adapter = adapter
-//    }
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        super.onCreateOptionsMenu(menu, inflater)
+        inflater.inflate(R.menu.menu_top, menu)
+    }
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when(item.itemId) {
+            // добавление элемента
+            R.id.new_crime -> {
+                val crime = Crime()
+                crimeListViewModel.addCrime(crime)
+                callbacks = context as Callbacks?
+                callbacks?.onCrimeSelected(crime.id)
+                true
+            }
+            else -> return super.onOptionsItemSelected(item)
+        }
+    }
+    // удаление элемента
+    fun delCrime( crime: Crime) {
+        val builder = AlertDialog.Builder(requireView().context)
+        builder.apply {
+            setTitle("Удаление")
+            setMessage("Удалить текущее событие?")
+            setIcon(R.drawable.ic_priority)
+            setPositiveButton(
+                "Да") { dialog, id ->
+                crimeListViewModel.deleteCrime(crime)  }
+            setNegativeButton(
+                "Cancel") { dialog, id ->
+            }
+        }.show()
+    }
 
     companion object {
         fun newInstanse(): CrimeListFragment {
@@ -82,7 +129,7 @@ class CrimeListFragment : Fragment() {
         }
     }
 
- //    HOLDER и ADAPTER
+    //    HOLDER и ADAPTER
     private inner class CrimeHolder(itemView: View): RecyclerView.ViewHolder(itemView) {
 
         val titleTextView: TextView = itemView.findViewById(R.id.crime_title)
@@ -91,16 +138,22 @@ class CrimeListFragment : Fragment() {
 
         fun setData(crime: Crime) {
              titleTextView.text = crime.title
-             dateTextView.text = "Дата: ${getDateToStr(crime.date)}"
+             dateTextView.text = "Дата: ${crime.date.format()}"
              solvedImageView.visibility = if(crime.isSolved) {
                  View.VISIBLE
              } else {
                  View.GONE
              }
+            // Просмотр, редактирование элемента
             itemView.setOnClickListener{
-                //Toast.makeText(context, "${crime.title}", Toast.LENGTH_SHORT).show()
+                callbacks = context as Callbacks?
                 callbacks?.onCrimeSelected((crime.id))
              }
+            // удаление элемента
+            itemView.setOnLongClickListener {
+                delCrime(crime)
+                true
+            }
         }
     }
 
@@ -116,11 +169,19 @@ class CrimeListFragment : Fragment() {
             holder.setData(crime)
         }
         override fun getItemCount() = crimes.size
+
+        fun removeItem(itemView: View) {
+
+        }
     }
 
-    fun getDateToStr(date : Date): String {
-        val formatter = SimpleDateFormat("dd-MM-yy kk:mm", Locale.getDefault())
-        return formatter.format(date)
-    }
+//    fun getDateToStr(date : Date): String {
+//        val formatter = SimpleDateFormat("dd-MM-yy kk:mm", Locale.getDefault())
+//        return formatter.format(date)
+//    }
+
+    fun Date.format(): String =
+        SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault())
+            .format(this)
 
 }

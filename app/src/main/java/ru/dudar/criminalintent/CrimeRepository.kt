@@ -37,7 +37,11 @@ class CrimeRepository private constructor(context: Context){
             crimeDao.addCrime(crime)
         }
     }
-
+    fun deleteCrime(crime: Crime) {
+        executor.execute {
+            crimeDao.deleteCrime(crime)
+        }
+    }
 
     companion object {
         private var INSTANCE: CrimeRepository? = null
